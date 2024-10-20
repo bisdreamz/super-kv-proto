@@ -8,12 +8,9 @@ import io.netty.handler.codec.ByteToMessageDecoder;
 
 import java.util.List;
 
-@ChannelHandler.Sharable
 public class ProtoResponseDecoder extends ByteToMessageDecoder {
 
     private static final int HEADER_SIZE = HeaderProtocol.HDR_TOTAL_LEN.sizeBytes(); // Size of the length header in bytes
-
-    public static ProtoResponseDecoder INSTANCE = new ProtoResponseDecoder();
 
     @Override
     protected void decode(ChannelHandlerContext ctx, ByteBuf in, List<Object> out) throws Exception {

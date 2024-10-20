@@ -4,8 +4,6 @@ import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelPipeline;
 import io.netty.channel.pool.*;
-import io.netty.handler.logging.LogLevel;
-import io.netty.handler.logging.LoggingHandler;
 import io.netty.util.concurrent.Future;
 import io.netty.util.concurrent.Promise;
 
@@ -47,7 +45,7 @@ public class NettyChannelPool {
 
                 ChannelPipeline pipeline = ch.pipeline();
 
-                pipeline.addLast(ProtoResponseDecoder.INSTANCE);
+                pipeline.addLast(new ProtoResponseDecoder());
                 pipeline.addLast(clientHandler);
             }
         };
