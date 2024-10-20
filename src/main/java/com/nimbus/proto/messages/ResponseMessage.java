@@ -7,7 +7,8 @@ public class ResponseMessage extends BinaryMessage {
     /**
      * Create a new BinaryResponse from a request with the
      * purpose of reusing the existing byte buffer, which
-     * will be immediately cleared and retained
+     * will be immediately cleared and retained.
+     * Sets status to a default of OK
      * @param request {@link RequestMessage} of which to reuse
      *                   the ByteBuf from
      */
@@ -18,9 +19,10 @@ public class ResponseMessage extends BinaryMessage {
         buffer.retain();
 
         buffer.setIndex(ResponseProtocol.START_OF_DATA, ResponseProtocol.START_OF_DATA);
+        this.status(ResponseProtocol.STATUS_OK);
     }
 
-    private ResponseMessage(ByteBuf buffer) {
+    public ResponseMessage(ByteBuf buffer) {
         super(buffer, ResponseProtocol.START_OF_DATA);
     }
 

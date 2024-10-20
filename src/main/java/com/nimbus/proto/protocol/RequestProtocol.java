@@ -4,9 +4,12 @@ import io.netty.buffer.ByteBuf;
 
 public class RequestProtocol extends HeaderProtocol {
 
-    public static final int CMD_SET = 0x01;
-    public static final int CMD_GET = 0x02;
-    public static final int CMD_DEL = 0x03;
+    public static final int CMD_SET = 1;
+    public static final int CMD_GET = 2;
+    public static final int CMD_DEL = 3;
+
+    // COMMANDS ABOVE 100 ARE REPLICATION SPECIFIC
+    public static final int REPL_CMD_ECHO = 100;
 
     /**
      * Start of request payload data. Currently immediately after

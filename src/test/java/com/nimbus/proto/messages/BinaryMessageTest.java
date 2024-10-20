@@ -19,7 +19,7 @@ class BinaryMessageTest {
     }
 
     @Test
-    void testKeyAndValueWriteRead() {
+    void testKeyAsBytesAndValueWriteRead() {
         BinaryMessage message = new BinaryMessage(buffer, HeaderProtocol.HDR_END_OFFSET) {};
 
         byte[] key = "key1".getBytes();
@@ -32,8 +32,8 @@ class BinaryMessageTest {
 
         message.resetReadIndex();
 
-        assertArrayEquals(key, message.key());
-        assertArrayEquals(value, message.value());
+        assertArrayEquals(key, message.keyAsBytes());
+        assertArrayEquals(value, message.valueAsBytes());
     }
 
     @Test

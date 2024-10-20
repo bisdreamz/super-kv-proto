@@ -73,11 +73,12 @@ public class HeaderProtocol {
      * @param szBytes Size of numerical value
      * @return Number value read from current reader index of ByteBuf
      */
-    public static int readInt(ByteBuf buffer, int szBytes) {
+    public static long readNumber(ByteBuf buffer, int szBytes) {
         return switch (szBytes) {
             case 1 -> buffer.readByte();
             case 2 -> buffer.readShort();
             case 4 -> buffer.readInt();
+            case 8 -> buffer.readLong();
             default -> throw new IllegalArgumentException("Unhandled readInt of sz " + szBytes);
         };
     }
@@ -91,11 +92,12 @@ public class HeaderProtocol {
      * @param szBytes Size of numerical value
      * @return Number value read from offset
      */
-    public static int getInt(ByteBuf buffer, int offset, int szBytes) {
+    public static long getNumber(ByteBuf buffer, int offset, int szBytes) {
         return switch (szBytes) {
             case 1 -> buffer.getByte(offset);
             case 2 -> buffer.getShort(offset);
             case 4 -> buffer.getInt(offset);
+            case 8 -> buffer.getLong(offset);
             default -> throw new IllegalArgumentException("Unhandled getInt of sz " + szBytes);
         };
     }
@@ -108,11 +110,12 @@ public class HeaderProtocol {
      * @param szBytes Size of numerical value in bytes to write
      * @param value Value
      */
-    public static void writeInt(ByteBuf buffer, int szBytes, int value) {
+    public static void writeNumber(ByteBuf buffer, int szBytes, long value) {
         switch (szBytes) {
             case 1 -> buffer.writeByte((byte) value);
             case 2 -> buffer.writeShort((short) value);
-            case 4 -> buffer.writeInt(value);
+            case 4 -> buffer.writeInt((int) value);
+            case 8 -> buffer.writeLong(value);
             default -> throw new IllegalArgumentException("Unhandled writeInt of sz " + szBytes);
         }
     }
@@ -205,7 +208,7 @@ public class HeaderProtocol {
      * @return
      */
     public static int getTotalLen(ByteBuf buffer) {
-        return getInt(buffer, HDR_TOTAL_LEN.offsetStart(), HDR_TOTAL_LEN.sizeBytes());
+        return (int) getNumber(buffer, HDR_TOTAL_LEN.offsetStart(), HDR_TOTAL_LEN.sizeBytes());
     }
 
     /**
@@ -228,7 +231,7 @@ public class HeaderProtocol {
      * @return The number value of the first major byte
      */
     public static int getMajor(ByteBuf buffer) {
-        return getInt(buffer, HDR_MAJOR.offsetStart(), HDR_MAJOR.sizeBytes());
+        return (int)getNumber(buffer, HDR_MAJOR.offsetStart(), HDR_MAJOR.sizeBytes());
     }
 
     /**
@@ -252,7 +255,7 @@ public class HeaderProtocol {
      * @return Compression header value, specific value meaning differs by implementation
      */
     public static int getCompression(ByteBuf buffer) {
-        return getInt(buffer, HDR_COMPRESSION.offsetStart(), HDR_COMPRESSION.sizeBytes());
+        return (int) getNumber(buffer, HDR_COMPRESSION.offsetStart(), HDR_COMPRESSION.sizeBytes());
     }
 
     /**
@@ -274,7 +277,7 @@ public class HeaderProtocol {
      * @return count value present in header
      */
     public static int getCount(ByteBuf buffer) {
-        return getInt(buffer, HDR_COUNT.offsetStart(), HDR_COUNT.sizeBytes());
+        return (int) getNumber(buffer, HDR_COUNT.offsetStart(), HDR_COUNT.sizeBytes());
     }
 
     /**

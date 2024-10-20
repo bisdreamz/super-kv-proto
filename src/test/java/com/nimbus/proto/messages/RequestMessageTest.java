@@ -63,7 +63,7 @@ class RequestMessageTest {
 
         msg.resetReadIndex();
 
-        assertEquals(key, new String(msg.key()));
-        assertEquals(value, new String(msg.value()));
+        assertEquals(key, new String(msg.keyAsBytes()));
+        assertEquals(value, new String(msg.valueAsBytes()));
     }
 }

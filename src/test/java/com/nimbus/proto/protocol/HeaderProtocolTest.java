@@ -47,23 +47,23 @@ public class HeaderProtocolTest {
     }
 
     @Test
-    public void testReadAndWriteInt() {
+    public void testReadAndWriteNumber() {
         int intValue = 123456789;
 
-        HeaderProtocol.writeInt(buffer, 4, intValue);
+        HeaderProtocol.writeNumber(buffer, 4, intValue);
         buffer.readerIndex(0);  // Reset the reader index for reading
-        int result = HeaderProtocol.readInt(buffer, 4);
+        int result = (int) HeaderProtocol.readNumber(buffer, 4);
 
         assertEquals(intValue, result, "Int value should match the written value");
     }
 
     @Test
-    public void testSetAndGetInt() {
+    public void testSetAndGetNumber() {
         int intValue = 255;  // Example value
         int offset = 5;  // Writing at an offset of 5 bytes
 
         HeaderProtocol.setInt(buffer, offset, Integer.BYTES, intValue);
-        int result = HeaderProtocol.getInt(buffer, offset, Integer.BYTES);
+        int result = (int) HeaderProtocol.getNumber(buffer, offset, Integer.BYTES);
 
         assertEquals(intValue, result, "Value read from buffer should match the written value");
     }
