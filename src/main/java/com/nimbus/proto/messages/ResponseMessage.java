@@ -1,5 +1,6 @@
 package com.nimbus.proto.messages;
 
+import com.nimbus.proto.protocol.HeaderProtocol;
 import com.nimbus.proto.protocol.ResponseProtocol;
 import io.netty.buffer.ByteBuf;
 public class ResponseMessage extends BinaryMessage {
@@ -27,7 +28,10 @@ public class ResponseMessage extends BinaryMessage {
     }
 
     public ResponseMessage() {
-        this(alloc.buffer());
+        this(alloc.buffer(HeaderProtocol.HDR_END_OFFSET * 4));
+
+        buffer.setIndex(ResponseProtocol.START_OF_DATA, ResponseProtocol.START_OF_DATA);
+        this.status(ResponseProtocol.STATUS_OK);
     }
 
     public ResponseMessage status(int status) {

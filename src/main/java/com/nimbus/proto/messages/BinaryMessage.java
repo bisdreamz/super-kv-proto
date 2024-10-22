@@ -47,40 +47,59 @@ public abstract class BinaryMessage {
         return (requiredCapacity + (alignment - 1)) & ~(alignment - 1);
     }
 
-    public static void main(String... a) {
-        ByteBuf buffer = PooledByteBufAllocator.DEFAULT.buffer(64);
-        byte[] bytes = new byte[128];
-        BinaryMessage msg = new BinaryMessage(buffer, 16) {};
-        msg.key(bytes);
+    /**
+     * Resets the reader index to the start of all key or value data,
+     * so they may be read again from the underlying buffer
+     */
+    public void resetReaderIndex() {
+        buffer.readerIndex(startOfData);
     }
 
+    /**
+     * Expands the provided buffer if needed to accommodate a potential write.
+     * @implNote First expansion copies the original buffer, subsequent resizes
+     * expand a composite buf. At time of writing, appears to be a bug in composite
+     * buffers if we use the original buffer.
+     * @param requiredCapacity required write capacity, which triggers an expansion if
+     *                         requiredCapacity > writeableBytes
+     */
     void ensureCapacity(int requiredCapacity) {
         if (buffer.writableBytes() < requiredCapacity) {
             int currCapacity = buffer.capacity();
-            int currCapacityRemaining = buffer.writableBytes();
-            int reqCapacityMissing = requiredCapacity - currCapacityRemaining;
-            int totalCapacityNeeded = currCapacity + reqCapacityMissing;
-            int newTotalCapacity = alignToBytes(totalCapacityNeeded, 64);
-            int neededAllocation = newTotalCapacity - currCapacity;
+            int minWritableBytes = requiredCapacity - buffer.writableBytes();
+            int capacityIncrement = alignToBytes(minWritableBytes, 64);
 
-            ByteBuf additionalBuffer = alloc.buffer(neededAllocation);
+            // Store current state
+            int readerIndex = buffer.readerIndex();
+            int writerIndex = buffer.writerIndex();
 
             if (buffer instanceof CompositeByteBuf) {
                 CompositeByteBuf compositeBuffer = (CompositeByteBuf) buffer;
-                compositeBuffer.addComponent(additionalBuffer);
-                compositeBuffer.capacity(newTotalCapacity);
+                ByteBuf additionalBuffer = alloc.directBuffer(capacityIncrement);
+                compositeBuffer.addComponent(true, additionalBuffer);
+                compositeBuffer.writerIndex(writerIndex);
             } else {
-                // Create a CompositeByteBuf and add both the existing buffer and the new buffer
-                CompositeByteBuf compositeBuffer = alloc.compositeBuffer();
+                // Create new composite buffer
+                CompositeByteBuf newCompositeBuffer = alloc.compositeBuffer();
+                ByteBuf additionalBuffer = alloc.directBuffer(capacityIncrement);
 
-                compositeBuffer.addComponent(buffer.retain());
-                compositeBuffer.addComponent(additionalBuffer);
-                compositeBuffer.capacity(newTotalCapacity);
+                // Copy original buffer once
+                ByteBuf copiedContent = alloc.directBuffer(currCapacity);
+                buffer.getBytes(0, copiedContent, writerIndex);
 
-                compositeBuffer.setIndex(buffer.readerIndex(), buffer.writerIndex());
+                // Add both buffers and set indices
+                newCompositeBuffer.addComponents(true, copiedContent, additionalBuffer);
+                newCompositeBuffer.writerIndex(writerIndex);
+                newCompositeBuffer.readerIndex(readerIndex);
 
-                buffer = compositeBuffer;
+                // Switch buffers
+                ByteBuf oldBuffer = buffer;
+                buffer = newCompositeBuffer;
+                oldBuffer.release();
             }
+
+            System.out.println("Buffer capacity increased to: " + buffer.capacity() +
+                    ", writable bytes: " + buffer.writableBytes());
         }
     }
 
@@ -89,8 +108,10 @@ public abstract class BinaryMessage {
         if (len < 1)
             throw new IllegalStateException("Error reading key with zero length, got " + len);
 
-        if (buffer.readableBytes() < len)
-            throw new IllegalStateException("Less readable bytes in buffer than indicated length in value data");
+        if (buffer.readableBytes() < len) {
+            throw new IllegalStateException("Less readable bytes " + buffer.readableBytes() +
+                    " in buffer than indicated length in value data " + len);
+        }
 
         byte[] key = HeaderProtocol.readBytes(buffer, len);
 
@@ -113,9 +134,34 @@ public abstract class BinaryMessage {
         return new String(this.keyAsBytes());
     }
 
+    /**
+     * Convenience method to accept key of variable types
+     * @param key of type byte[], String, Integer, or Long
+     * @throws IllegalArgumentException if provided an unsupported key type
+     */
+    public void key(Object key) {
+        if (key == null)
+            throw new NullPointerException("Key value cannot be null!");
+
+        if (key instanceof byte[]) {
+            this.key((byte[]) key);
+        } else if (key instanceof String) {
+            this.key((String) key);
+        } else if (key instanceof Integer) {
+            this.key((Integer) key);
+        } else if (key instanceof Long) {
+            this.key((Long) key);
+        } else {
+            throw new IllegalArgumentException("Unsupported key type: " + key.getClass().getName());
+        }
+    }
+
     public void key(byte[] key) {
-        if (key == null || key.length < 1)
-            throw new IllegalStateException("Key must be non-null with non zero length");
+        if (key == null)
+            throw new NullPointerException("Key must be non-null with non zero length");
+
+        if (key.length == 0)
+            throw new IllegalArgumentException("Key must be non-zero length");
 
         ensureCapacity(HeaderProtocol.SZ_KEY_LEN + key.length);
 
@@ -139,8 +185,11 @@ public abstract class BinaryMessage {
     }
 
     public void key(String key) {
-        if (key == null || key.isEmpty())
-            throw new IllegalStateException("Key must be non-null with non zero length");
+        if (key == null)
+            throw new NullPointerException("Key must be non-null with non zero length");
+
+        if (key.length() == 0)
+            throw new IllegalArgumentException("Key must be non-zero length");
 
         this.key(key.getBytes());
     }
@@ -227,9 +276,32 @@ public abstract class BinaryMessage {
         return valueAsByte() != 0;
     }
 
+    public void value(Object value) {
+        if (value == null)
+            throw new NullPointerException("Value must not be null");
+
+        if (value instanceof byte[]) {
+            this.value((byte[]) value);
+        } else if (value instanceof String) {
+            this.value((String) value);
+        } else if (value instanceof Byte) {
+            this.value((byte) value);
+        } else if (value instanceof Short) {
+            this.value((short) value);
+        } else if (value instanceof Integer) {
+            this.value((Integer) value);
+        } else if (value instanceof Long) {
+            this.value((Long) value);
+        } else if (value instanceof Boolean) {
+            this.value((Boolean) value);
+        } else {
+            throw new IllegalArgumentException("Unsupported value type: " + value.getClass().getName());
+        }
+    }
+
     public void value(String value) {
         if (value == null)
-            throw new IllegalArgumentException("Value cannot be null");
+            throw new NullPointerException("Value cannot be null");
 
         this.value(value.getBytes());
     }
@@ -248,23 +320,23 @@ public abstract class BinaryMessage {
         HeaderProtocol.writeNumber(buffer, sz, value);
     }
 
-    public void value(boolean value) {
+    public void value(Boolean value) {
         this.value(value ? (byte) 1 : (byte) 0, Byte.BYTES);
     }
 
-    public void value(byte value) {
+    public void value(Byte value) {
         this.value(value, Byte.BYTES);
     }
 
-    public void value(short value) {
+    public void value(Short value) {
         this.value(value, Short.BYTES);
     }
 
-    public void value(int value) {
+    public void value(Integer value) {
         this.value(value, Integer.BYTES);
     }
 
-    public void value(long value) {
+    public void value(Long value) {
         this.value(value, Long.BYTES);
     }
 

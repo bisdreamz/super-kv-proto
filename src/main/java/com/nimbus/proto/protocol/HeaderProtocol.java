@@ -111,6 +111,7 @@ public class HeaderProtocol {
      * @param value Value
      */
     public static void writeNumber(ByteBuf buffer, int szBytes, long value) {
+        System.out.println("Writing " + szBytes + " bytes of " + value + " from idx " + buffer.writerIndex());
         switch (szBytes) {
             case 1 -> buffer.writeByte((byte) value);
             case 2 -> buffer.writeShort((short) value);
@@ -174,6 +175,7 @@ public class HeaderProtocol {
      * @param value Byte array value to write
      */
     public static void writeBytes(ByteBuf buffer, byte[] value) {
+        System.out.println("Writing " + value.length + " bytes to idx " + buffer.writerIndex());
         buffer.writeBytes(value);
     }
 
